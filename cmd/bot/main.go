@@ -63,16 +63,23 @@ func run(log *zerolog.Logger, c *configuration) error {
 		session.Close()
 	}()
 
-	command := commands.NewBasicCommand()
+	cmdList := commands.NewCommandList()
 
-	cmd, err := session.ApplicationCommandCreate(session.State.User.ID, "", command.Command)
-	if err != nil {
-		return errors.Wrap(err, "Unable to create command.")
+	cmdList.Append(commands.NewBasicCommand())
+
+	for _, cmd := range cmdList {
+		registeredCmd, err := session.ApplicationCommandCreate(session.State.User.ID, "", cmd.Command())
+		if err != nil {
+			return errors.Wrap(err, "Unable to create command.")
+		}
+
+		defer session.ApplicationCommandDelete(session.State.User.ID, "", registeredCmd.ID)
 	}
 
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.ApplicationCommandData().Name == command.Command.Name {
-			command.Handle(s, i)
+		name := i.ApplicationCommandData().Name
+		if cmd, ok := cmdList.GetCommand(name); ok {
+			cmd.Handle(s, i)
 		}
 	})
 
@@ -84,9 +91,5 @@ func run(log *zerolog.Logger, c *configuration) error {
 
 	log.Info().Msg("Shutting down bot.")
 
-	err = session.ApplicationCommandDelete(session.State.User.ID, "", cmd.ID)
-	if err != nil {
-		return errors.Wrap(err, "Unable to delete command.")
-	}
 	return nil
 }

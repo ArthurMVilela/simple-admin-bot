@@ -5,7 +5,16 @@ import (
 )
 
 type BasicCommand struct {
-	Command *discordgo.ApplicationCommand
+	command *discordgo.ApplicationCommand
+}
+
+func NewBasicCommand() *BasicCommand {
+	return &BasicCommand{
+		command: &discordgo.ApplicationCommand{
+			Name:        "basic-cmd",
+			Description: "Comando básico",
+		},
+	}
 }
 
 func (c *BasicCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -17,11 +26,10 @@ func (c *BasicCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 	})
 }
 
-func NewBasicCommand() *BasicCommand {
-	return &BasicCommand{
-		Command: &discordgo.ApplicationCommand{
-			Name:        "basic-cmd",
-			Description: "Comando básico",
-		},
-	}
+func (c *BasicCommand) Command() *discordgo.ApplicationCommand {
+	return c.command
+}
+
+func (c *BasicCommand) CommandName() string {
+	return c.command.Name
 }
