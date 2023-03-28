@@ -2,7 +2,11 @@ module github.com/ArthurMVilela/simple-admin-bot
 
 go 1.18
 
-require github.com/rs/zerolog v1.29.0
+require (
+	github.com/ardanlabs/conf/v3 v3.1.5
+	github.com/pkg/errors v0.9.1
+	github.com/rs/zerolog v1.29.0
+)
 
 require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
