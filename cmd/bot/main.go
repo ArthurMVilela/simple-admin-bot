@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ArthurMVilela/simple-admin-bot/internal/commands"
 	conf "github.com/ardanlabs/conf/v3"
 	"github.com/bwmarrin/discordgo"
 	"github.com/pkg/errors"
@@ -62,6 +63,19 @@ func run(log *zerolog.Logger, c *configuration) error {
 		session.Close()
 	}()
 
+	command := commands.NewBasicCommand()
+
+	cmd, err := session.ApplicationCommandCreate(session.State.User.ID, "", command.Command)
+	if err != nil {
+		return errors.Wrap(err, "Unable to create command.")
+	}
+
+	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.ApplicationCommandData().Name == command.Command.Name {
+			command.Handle(s, i)
+		}
+	})
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 
@@ -69,5 +83,10 @@ func run(log *zerolog.Logger, c *configuration) error {
 	<-stop
 
 	log.Info().Msg("Shutting down bot.")
+
+	err = session.ApplicationCommandDelete(session.State.User.ID, "", cmd.ID)
+	if err != nil {
+		return errors.Wrap(err, "Unable to delete command.")
+	}
 	return nil
 }
