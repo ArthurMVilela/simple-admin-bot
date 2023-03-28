@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"os"
+	"os/signal"
 	"time"
 )
 
@@ -56,8 +57,16 @@ func run(log *zerolog.Logger, c *configuration) error {
 		return errors.Wrap(err, "Unable to open session.")
 	}
 
-	log.Info().Msg("Closing session.")
-	session.Close()
+	defer func() {
+		log.Info().Msg("Closing session.")
+		session.Close()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	log.Info().Msg("Press ctrl+c to stop.")
+	<-stop
 
 	log.Info().Msg("Shutting down bot.")
 	return nil
