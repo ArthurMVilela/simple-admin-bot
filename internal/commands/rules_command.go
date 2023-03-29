@@ -27,6 +27,14 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 					Name:        "show",
 					Description: "Mostra todas regras.",
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "n",
+							Description: "Número da regra a mostrar.",
+							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    false,
+						},
+					},
 				},
 			},
 		},
@@ -37,16 +45,34 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	options := i.ApplicationCommandData().Options
 
+	c.log.Debug().Msgf("%v", options)
+
 	switch options[0].Name {
 	case "show":
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Embeds: []*discordgo.MessageEmbed{
-					c.createRulesEmbed(),
+		subOptions := options[0].Options
+		if len(subOptions) != 0 {
+			if subOptions[0].Name == "n" {
+				index := subOptions[0].IntValue()
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							c.createRuleEmbed(index),
+						},
+					},
+				})
+			}
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						c.createRulesEmbed(),
+					},
 				},
-			},
-		})
+			})
+		}
+
 	}
 }
 
@@ -66,6 +92,21 @@ func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
 			Name:  fmt.Sprintf("Regra N°%v", i+1),
 			Value: rule.Text,
 		}
+	}
+
+	return &discordgo.MessageEmbed{
+		Title:       "Regras",
+		Description: "Regras do servidor.",
+		Fields:      fields,
+	}
+}
+
+func (c *RulesCommand) createRuleEmbed(index int64) *discordgo.MessageEmbed {
+	fields := make([]*discordgo.MessageEmbedField, 1)
+
+	fields[0] = &discordgo.MessageEmbedField{
+		Name:  fmt.Sprintf("Regra N°%v", index),
+		Value: c.Rules[index-1].Text,
 	}
 
 	return &discordgo.MessageEmbed{
