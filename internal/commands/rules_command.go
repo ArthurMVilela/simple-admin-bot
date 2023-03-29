@@ -53,6 +53,17 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 		if len(subOptions) != 0 {
 			if subOptions[0].Name == "n" {
 				index := subOptions[0].IntValue()
+
+				if index < 1 || index > int64(len(c.Rules)) {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Número de regra inválida.",
+						},
+					})
+					return
+				}
+
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -61,18 +72,20 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 						},
 					},
 				})
+				return
 			}
-		} else {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Embeds: []*discordgo.MessageEmbed{
-						c.createRulesEmbed(),
-					},
-				},
-			})
 		}
 
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{
+					c.createRulesEmbed(),
+				},
+			},
+		})
+
+		return
 	}
 }
 
