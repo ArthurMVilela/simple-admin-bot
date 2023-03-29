@@ -36,6 +36,19 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 						},
 					},
 				},
+				{
+					Name:        "add",
+					Description: "Adiciona um nova regra.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "text",
+							Description: "Texto da regra.",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 		Rules: []Rule{Rule{Text: "Ado ado ado."}, Rule{Text: "Cado cado cado."}},
@@ -50,6 +63,9 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 	switch options[0].Name {
 	case "show":
 		c.handleShow(s, i)
+		return
+	case "add":
+		c.handleAdd(s, i)
 		return
 	}
 }
@@ -100,6 +116,26 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 		},
 	})
 	return
+}
+
+func (c *RulesCommand) handleAdd(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options
+	text := options[0].Options[0].StringValue()
+
+	rule := Rule{
+		Text: text,
+	}
+
+	c.Rules = append(c.Rules, rule)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				c.createRuleEmbed(int64(len(c.Rules))),
+			},
+		},
+	})
 }
 
 func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
