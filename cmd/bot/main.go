@@ -66,6 +66,7 @@ func run(log *zerolog.Logger, c *configuration) error {
 	cmdList := commands.NewCommandList()
 
 	cmdList.Append(commands.NewBasicCommand())
+	cmdList.Append(commands.NewRulesCommand(log))
 
 	for _, cmd := range cmdList {
 		registeredCmd, err := session.ApplicationCommandCreate(session.State.User.ID, "", cmd.Command())
