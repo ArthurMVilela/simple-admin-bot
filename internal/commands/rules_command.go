@@ -49,6 +49,19 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 						},
 					},
 				},
+				{
+					Name:        "remove",
+					Description: "Remove uma regra.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "n",
+							Description: "Número da regra a retirar.",
+							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 		Rules: []Rule{Rule{Text: "Ado ado ado."}, Rule{Text: "Cado cado cado."}},
@@ -66,6 +79,9 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 		return
 	case "add":
 		c.handleAdd(s, i)
+		return
+	case "remove":
+		c.handleRemove(s, i)
 		return
 	}
 }
@@ -136,6 +152,33 @@ func (c *RulesCommand) handleAdd(s *discordgo.Session, i *discordgo.InteractionC
 			},
 		},
 	})
+}
+
+func (c *RulesCommand) handleRemove(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options
+	index := options[0].Options[0].IntValue()
+
+	if index < 1 || index > int64(len(c.Rules)) {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Número de regra inválida.",
+			},
+		})
+		return
+	}
+
+	c.Rules = append(c.Rules[:(index-1)], c.Rules[(index):]...)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				c.createRulesEmbed(),
+			},
+		},
+	})
+	return
 }
 
 func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
