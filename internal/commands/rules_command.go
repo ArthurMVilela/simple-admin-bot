@@ -62,9 +62,28 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 						},
 					},
 				},
+				{
+					Name:        "move",
+					Description: "Move uma regra.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "n",
+							Description: "Número da regra a ser movida.",
+							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    true,
+						},
+						{
+							Name:        "to",
+							Description: "Para que posição mover a regra.",
+							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
-		Rules: []Rule{Rule{Text: "Ado ado ado."}, Rule{Text: "Cado cado cado."}},
+		Rules: []Rule{Rule{Text: "Regra 1"}, Rule{Text: "Regra 2"}, Rule{Text: "Regra 3"}},
 	}
 }
 
@@ -83,6 +102,8 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 	case "remove":
 		c.handleRemove(s, i)
 		return
+	case "move":
+		c.handleMove(s, i)
 	}
 }
 
@@ -169,6 +190,77 @@ func (c *RulesCommand) handleRemove(s *discordgo.Session, i *discordgo.Interacti
 	}
 
 	c.Rules = append(c.Rules[:(index-1)], c.Rules[(index):]...)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				c.createRulesEmbed(),
+			},
+		},
+	})
+	return
+}
+
+func (c *RulesCommand) handleMove(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options[0].Options
+
+	optionsMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionsMap[opt.Name] = opt
+	}
+
+	index := optionsMap["n"].IntValue()
+	dest := optionsMap["to"].IntValue()
+
+	if dest == -1 {
+		dest = int64(len(c.Rules))
+	}
+
+	if index == dest {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{
+					c.createRulesEmbed(),
+				},
+			},
+		})
+	}
+
+	if dest < 1 || dest > int64(len(c.Rules)) {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Destino da regra inválida.",
+			},
+		})
+		return
+	}
+
+	if index < 1 || index > int64(len(c.Rules)) {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Número de regra inválida.",
+			},
+		})
+		return
+	}
+
+	rule := c.Rules[index-1]
+
+	c.log.Debug().Msgf("%v", c.Rules)
+	c.Rules = append(c.Rules[:(index-1)], c.Rules[(index):]...)
+	c.log.Debug().Msgf("%v", c.Rules)
+
+	rulesBefore := c.Rules[:dest-1]
+	rulesAfter := c.Rules[dest-1:]
+
+	c.Rules = append(rulesBefore, rule)
+	c.log.Debug().Msgf("%v", c.Rules)
+	c.Rules = append(c.Rules, rulesAfter...)
+	c.log.Debug().Msgf("%v", c.Rules)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
