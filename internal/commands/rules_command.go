@@ -49,42 +49,7 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 
 	switch options[0].Name {
 	case "show":
-		subOptions := options[0].Options
-		if len(subOptions) != 0 {
-			if subOptions[0].Name == "n" {
-				index := subOptions[0].IntValue()
-
-				if index < 1 || index > int64(len(c.Rules)) {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Número de regra inválida.",
-						},
-					})
-					return
-				}
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							c.createRuleEmbed(index),
-						},
-					},
-				})
-				return
-			}
-		}
-
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Embeds: []*discordgo.MessageEmbed{
-					c.createRulesEmbed(),
-				},
-			},
-		})
-
+		c.handleShow(s, i)
 		return
 	}
 }
@@ -95,6 +60,46 @@ func (c *RulesCommand) Command() *discordgo.ApplicationCommand {
 
 func (c *RulesCommand) CommandName() string {
 	return c.command.Name
+}
+
+func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options
+	subOptions := options[0].Options
+	if len(subOptions) != 0 {
+		if subOptions[0].Name == "n" {
+			index := subOptions[0].IntValue()
+
+			if index < 1 || index > int64(len(c.Rules)) {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Número de regra inválida.",
+					},
+				})
+				return
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						c.createRuleEmbed(index),
+					},
+				},
+			})
+			return
+		}
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				c.createRulesEmbed(),
+			},
+		},
+	})
+	return
 }
 
 func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
