@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type RulesCommand struct {
 	log     *zerolog.Logger
 	command *discordgo.ApplicationCommand
 	Rules   []Rule
-}
-
-type Rule struct {
-	Text string
 }
 
 func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
@@ -159,7 +156,7 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{
-						c.createRuleEmbed(index),
+						c.createRuleEmbed(index, s),
 					},
 				},
 			})
@@ -182,17 +179,24 @@ func (c *RulesCommand) handleAdd(s *discordgo.Session, i *discordgo.InteractionC
 	options := i.ApplicationCommandData().Options
 	text := options[0].Options[0].StringValue()
 
-	rule := Rule{
-		Text: text,
+	userId := ""
+	if i.Member != nil {
+		if i.Member.User != nil {
+			userId = i.Member.User.ID
+		}
 	}
 
+	rule := NewRule(text, userId, time.Now())
+
 	c.Rules = append(c.Rules, rule)
+
+	c.log.Debug().Msgf("Added new rule: %v", rule)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{
-				c.createRuleEmbed(int64(len(c.Rules))),
+				c.createRuleEmbed(int64(len(c.Rules)), s),
 			},
 		},
 	})
@@ -317,7 +321,14 @@ func (c *RulesCommand) handleEdit(s *discordgo.Session, i *discordgo.Interaction
 		return
 	}
 
-	c.Rules[index-1].Text = text
+	userId := ""
+	if i.Member != nil {
+		if i.Member.User != nil {
+			userId = i.Member.User.ID
+		}
+	}
+
+	c.Rules[index-1].Edit(text, userId, time.Now())
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -347,17 +358,42 @@ func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
 	}
 }
 
-func (c *RulesCommand) createRuleEmbed(index int64) *discordgo.MessageEmbed {
-	fields := make([]*discordgo.MessageEmbedField, 1)
+func (c *RulesCommand) createRuleEmbed(index int64, s *discordgo.Session) *discordgo.MessageEmbed {
+	rule := c.Rules[index-1]
 
-	fields[0] = &discordgo.MessageEmbedField{
-		Name:  fmt.Sprintf("Regra N°%v", index),
-		Value: c.Rules[index-1].Text,
+	footer := &discordgo.MessageEmbedFooter{}
+
+	author, err := s.User(rule.creator)
+	if err != nil {
+		c.log.Debug().Err(err).Msg("Unable to get rule creator.")
+	}
+	lastuser, err := s.User(rule.lastChangeBy)
+	if err != nil {
+		c.log.Debug().Err(err).Msg("Unable to get rule last modifier user.")
+	}
+
+	if author != nil {
+		footer.Text = fmt.Sprintf("Criado por: %v.\nCriado em: %v.\n", author.Username, rule.createdAt)
+	} else {
+		footer.Text = fmt.Sprintf("Criado em: %v.\n", rule.createdAt)
+	}
+
+	if lastuser != nil {
+		footer.Text = fmt.Sprintf(
+			"%sÚltima modificação por: %v.\nÚltima modificação em: %v.\n",
+			footer.Text,
+			lastuser.Username, rule.lastChangeAt,
+		)
+	} else {
+		footer.Text = fmt.Sprintf(
+			"%sÚltima modificação em: %v.\n",
+			footer.Text, rule.lastChangeAt,
+		)
 	}
 
 	return &discordgo.MessageEmbed{
-		Title:       "Regras",
-		Description: "Regras do servidor.",
-		Fields:      fields,
+		Title:       fmt.Sprintf("Regra N°%v", index),
+		Description: rule.Text,
+		Footer:      footer,
 	}
 }
