@@ -81,6 +81,25 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 						},
 					},
 				},
+				{
+					Name:        "edit",
+					Description: "Edita um comando.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "n",
+							Description: "Número da regra a ser movida.",
+							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    true,
+						},
+						{
+							Name:        "text",
+							Description: "Texto da regra.",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 		Rules: []Rule{Rule{Text: "Regra 1"}, Rule{Text: "Regra 2"}, Rule{Text: "Regra 3"}},
@@ -104,6 +123,10 @@ func (c *RulesCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 		return
 	case "move":
 		c.handleMove(s, i)
+		return
+	case "edit":
+		c.handleEdit(s, i)
+		return
 	}
 }
 
@@ -261,6 +284,40 @@ func (c *RulesCommand) handleMove(s *discordgo.Session, i *discordgo.Interaction
 	c.log.Debug().Msgf("%v", c.Rules)
 	c.Rules = append(c.Rules, rulesAfter...)
 	c.log.Debug().Msgf("%v", c.Rules)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				c.createRulesEmbed(),
+			},
+		},
+	})
+	return
+}
+
+func (c *RulesCommand) handleEdit(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options[0].Options
+
+	optionsMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionsMap[opt.Name] = opt
+	}
+
+	index := optionsMap["n"].IntValue()
+	text := optionsMap["text"].StringValue()
+
+	if index < 1 || index > int64(len(c.Rules)) {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Número de regra inválida.",
+			},
+		})
+		return
+	}
+
+	c.Rules[index-1].Text = text
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
