@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ArthurMVilela/simple-admin-bot/internal/commands"
+	"github.com/ArthurMVilela/simple-admin-bot/internal/rules"
 	conf "github.com/ardanlabs/conf/v3"
 	"github.com/bwmarrin/discordgo"
 	"github.com/pkg/errors"
@@ -66,7 +67,7 @@ func run(log *zerolog.Logger, c *configuration) error {
 	cmdList := commands.NewCommandList()
 
 	cmdList.Append(commands.NewBasicCommand())
-	cmdList.Append(commands.NewRulesCommand(log))
+	cmdList.Append(rules.NewRulesCommand(log))
 
 	for _, cmd := range cmdList {
 		registeredCmd, err := session.ApplicationCommandCreate(session.State.User.ID, "", cmd.Command())
