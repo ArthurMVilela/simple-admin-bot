@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
+	"reflect"
 	"time"
 )
 
@@ -29,6 +30,12 @@ func NewRulesCommand(log *zerolog.Logger) *RulesCommand {
 							Name:        "n",
 							Description: "Número da regra a mostrar.",
 							Type:        discordgo.ApplicationCommandOptionInteger,
+							Required:    false,
+						},
+						{
+							Name:        "ping",
+							Description: "Ping",
+							Type:        discordgo.ApplicationCommandOptionMentionable,
 							Required:    false,
 						},
 					},
@@ -138,7 +145,30 @@ func (c *RulesCommand) CommandName() string {
 func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	options := i.ApplicationCommandData().Options
 	subOptions := options[0].Options
+
+	optionsMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(subOptions))
+	for _, opt := range subOptions {
+		optionsMap[opt.Name] = opt
+	}
+
+	content := ""
+	if pingOpt, ok := optionsMap["ping"]; ok {
+		c.log.Debug().Msgf("%s", pingOpt.UserValue(nil).ID)
+		c.log.Debug().Msgf("%v", reflect.TypeOf(pingOpt))
+
+		if user := pingOpt.UserValue(nil); user != nil {
+			_, err := s.User(user.ID)
+
+			if role := pingOpt.RoleValue(nil, i.GuildID); err != nil && role != nil {
+				content = fmt.Sprintf("<@&%s>", role.ID)
+			} else {
+				content = fmt.Sprintf("<@!%s>", user.ID)
+			}
+		}
+	}
+
 	if len(subOptions) != 0 {
+
 		if subOptions[0].Name == "n" {
 			index := subOptions[0].IntValue()
 
@@ -155,6 +185,7 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
+					Content: content,
 					Embeds: []*discordgo.MessageEmbed{
 						c.createRuleEmbed(index, s),
 					},
@@ -162,11 +193,13 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 			})
 			return
 		}
+
 	}
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
+			Content: content,
 			Embeds: []*discordgo.MessageEmbed{
 				c.createRulesEmbed(),
 			},
