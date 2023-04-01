@@ -167,33 +167,36 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 		}
 	}
 
-	if len(subOptions) != 0 {
+	if nOpt, ok := optionsMap["n"]; ok {
+		n := int(nOpt.IntValue())
+		index := 0
 
-		if subOptions[0].Name == "n" {
-			index := subOptions[0].IntValue()
+		if n == -1 {
+			index = len(c.Rules) - 1
+		} else {
+			index = n - 1
+		}
 
-			if index < 1 || index > int64(len(c.Rules)) {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Número de regra inválida.",
-					},
-				})
-				return
-			}
-
+		if index < 0 || index > (len(c.Rules)-1) {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: content,
-					Embeds: []*discordgo.MessageEmbed{
-						c.createRuleEmbed(index, s),
-					},
+					Content: "Número de regra inválida.",
 				},
 			})
 			return
 		}
 
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: content,
+				Embeds: []*discordgo.MessageEmbed{
+					c.createRuleEmbed(index, s),
+				},
+			},
+		})
+		return
 	}
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -229,7 +232,7 @@ func (c *RulesCommand) handleAdd(s *discordgo.Session, i *discordgo.InteractionC
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{
-				c.createRuleEmbed(int64(len(c.Rules)), s),
+				c.createRuleEmbed((len(c.Rules)), s),
 			},
 		},
 	})
@@ -391,8 +394,8 @@ func (c *RulesCommand) createRulesEmbed() *discordgo.MessageEmbed {
 	}
 }
 
-func (c *RulesCommand) createRuleEmbed(index int64, s *discordgo.Session) *discordgo.MessageEmbed {
-	rule := c.Rules[index-1]
+func (c *RulesCommand) createRuleEmbed(index int, s *discordgo.Session) *discordgo.MessageEmbed {
+	rule := c.Rules[index]
 
 	footer := &discordgo.MessageEmbedFooter{}
 
@@ -425,7 +428,7 @@ func (c *RulesCommand) createRuleEmbed(index int64, s *discordgo.Session) *disco
 	}
 
 	return &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("Regra N°%v", index),
+		Title:       fmt.Sprintf("Regra N°%v", index+1),
 		Description: rule.Text,
 		Footer:      footer,
 	}
