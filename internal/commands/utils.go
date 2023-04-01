@@ -15,3 +15,13 @@ func OptionMap(
 
 	return optMap
 }
+
+func CommandErrorResponse(s *discordgo.Session, i *discordgo.InteractionCreate, msg string) {
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Flags:   discordgo.MessageFlagsEphemeral,
+			Content: msg,
+		},
+	})
+}

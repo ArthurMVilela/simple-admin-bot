@@ -174,12 +174,7 @@ func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.Interaction
 		}
 
 		if index < 0 || index > (len(c.Rules)-1) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Número de regra inválida.",
-				},
-			})
+			commands.CommandErrorResponse(s, i, "Número de regra inválido.")
 			return
 		}
 
@@ -239,12 +234,7 @@ func (c *RulesCommand) handleRemove(s *discordgo.Session, i *discordgo.Interacti
 	index := options[0].Options[0].IntValue()
 
 	if index < 1 || index > int64(len(c.Rules)) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Número de regra inválida.",
-			},
-		})
+		commands.CommandErrorResponse(s, i, "Número de regra inválido.")
 		return
 	}
 
@@ -288,22 +278,12 @@ func (c *RulesCommand) handleMove(s *discordgo.Session, i *discordgo.Interaction
 	}
 
 	if dest < 1 || dest > int64(len(c.Rules)) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Destino da regra inválida.",
-			},
-		})
+		commands.CommandErrorResponse(s, i, "Destino da regra inválida.")
 		return
 	}
 
 	if index < 1 || index > int64(len(c.Rules)) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Número de regra inválida.",
-			},
-		})
+		commands.CommandErrorResponse(s, i, "Número de regra inválido.")
 		return
 	}
 
@@ -344,12 +324,7 @@ func (c *RulesCommand) handleEdit(s *discordgo.Session, i *discordgo.Interaction
 	text := optionsMap["text"].StringValue()
 
 	if index < 1 || index > int64(len(c.Rules)) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Número de regra inválida.",
-			},
-		})
+		commands.CommandErrorResponse(s, i, "Número de regra inválido.")
 		return
 	}
 
