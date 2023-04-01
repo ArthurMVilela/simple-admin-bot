@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"github.com/ArthurMVilela/simple-admin-bot/internal/commands"
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
 	"reflect"
@@ -143,13 +144,8 @@ func (c *RulesCommand) CommandName() string {
 }
 
 func (c *RulesCommand) handleShow(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	options := i.ApplicationCommandData().Options
-	subOptions := options[0].Options
-
-	optionsMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(subOptions))
-	for _, opt := range subOptions {
-		optionsMap[opt.Name] = opt
-	}
+	options := commands.OptionMap(i.ApplicationCommandData().Options)
+	optionsMap := commands.OptionMap(options["show"].Options)
 
 	content := ""
 	if pingOpt, ok := optionsMap["ping"]; ok {
